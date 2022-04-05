@@ -1,9 +1,12 @@
 import axios from "axios";
+import { DateTime } from "luxon";
 import Head from "next/head";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [selected, setSelected] = useState("query");
+  const [selectedResponse, setSelectedResponse] = useState("body-response");
+  const [response, setResponse] = useState({});
   const [method, setMethod] = useState("");
   const [url, setUrl] = useState("");
   const [inputParamFields, setInputParamFields] = useState([
@@ -17,6 +20,11 @@ export default function Home() {
   const handleTab = (e, val) => {
     e.preventDefault();
     setSelected(val);
+  };
+
+  const handleTabResponse = (e, val) => {
+    e.preventDefault();
+    setSelectedResponse(val);
   };
 
   const handleAddFields = () => {
@@ -62,6 +70,7 @@ export default function Home() {
     });
 
     console.log(res);
+    setResponse(res);
   };
 
   const arrToObject = (arr) => {
@@ -74,6 +83,27 @@ export default function Home() {
     return res;
   };
 
+  const updateEndTime = (response) => {
+    console.log(response);
+    // response.customData = response.customData || {};
+    // response.customData.time =
+    //   new DateTime.now() - response.config.customData.startTime;
+    return response;
+  };
+
+  useEffect(() => {
+    // axios.interceptors.request.use((request) => {
+    //   request.customData = request.customData || {};
+    //   request.customData.startTime = new DateTime.now();
+    //   return request;
+    // });
+    // axios.interceptors.response.use(updateEndTime, (e) => {
+    //   // Promise.reject(updateEndTime(e.response));
+    //   console.log(e);
+    //   return e;
+    // });
+  }, []);
+
   return (
     <div>
       <Head>
@@ -82,11 +112,12 @@ export default function Home() {
       </Head>
 
       <main className="p-4">
+        {/* input form */}
         <form>
           <div className="input-group mb-4">
             <select
               className="form-select flex-grow-0 w-auto"
-              onChange={(e) => console.log(e.target.value)}
+              onChange={(e) => setMethod(e.target.value)}
             >
               <option value={"GET"} defaultValue>
                 GET
@@ -250,6 +281,89 @@ export default function Home() {
             </div>
           </div>
         </form>
+        {/* response */}
+        <div className="mt-5">
+          <h3>Response</h3>
+          <div className="d-flex my-2">
+            <div className="me-3">
+              Status: <span>{response && response.status}</span>
+            </div>
+            <div className="me-3">
+              Time: <span></span>ms
+            </div>
+            <div className="me-3">
+              Size: <span></span>
+            </div>
+          </div>
+        </div>
+
+        <ul className="nav nav-tabs" role={"tablist"}>
+          <li className="nav-item" role={"presentation"}>
+            <button
+              className={
+                selectedResponse == "body-response"
+                  ? "nav-link active"
+                  : "nav-link"
+              }
+              id="body-response-tab"
+              onClick={(e) => handleTabResponse(e, "body-response")}
+            >
+              Body
+            </button>
+          </li>
+          <li className="nav-item" role={"presentation"}>
+            <button
+              className={
+                selectedResponse == "headers-response"
+                  ? "nav-link active"
+                  : "nav-link"
+              }
+              id="request-headers-response-tab"
+              onClick={(e) => handleTabResponse(e, "headers-response")}
+            >
+              Headers
+            </button>
+          </li>
+        </ul>
+
+        <div className="tab-content p-3 border-top-0 border">
+          <div
+            className={
+              selectedResponse == "body-response"
+                ? "tab-pane fade show active"
+                : "tab-pane fade"
+            }
+            id="body-response-tab"
+            role={"tabpanel"}
+          >
+            body
+          </div>
+
+          <div
+            className={
+              selectedResponse == "headers-response"
+                ? "tab-pane fade show active"
+                : "tab-pane fade"
+            }
+            id="request-headers-response-tab"
+            role={"tabpanel"}
+          >
+            <div className="container">
+              {response.headers &&
+                Object.keys(response.headers).map((key, i) => {
+                  return (
+                    <div className="row" key={i}>
+                      <div className="col text-start">{key}</div>
+                      <div className="col text-start"> : </div>
+                      <div className="col-7 text-start">
+                        {response.headers[key]}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
