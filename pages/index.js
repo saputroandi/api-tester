@@ -1,7 +1,11 @@
 import axios from "axios";
-import { DateTime } from "luxon";
 import Head from "next/head";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import prettyBytes from "pretty-bytes";
+import { EditorState, basicSetup } from "@codemirror/basic-setup";
+import { EditorView, keymap } from "@codemirror/view";
+import { defaultTabBinding } from "@codemirror/commands";
+import { json } from "@codemirror/lang-json";
 
 export default function Home() {
   const [selected, setSelected] = useState("query");
@@ -9,6 +13,7 @@ export default function Home() {
   const [response, setResponse] = useState({});
   const [method, setMethod] = useState("");
   const [url, setUrl] = useState("");
+  const bodyRef = useRef(null);
   const [inputParamFields, setInputParamFields] = useState([
     { key: "", value: "" },
   ]);
@@ -16,6 +21,36 @@ export default function Home() {
   const [inputHeadersFields, setInputHeadersFields] = useState([
     { key: "", value: "" },
   ]);
+
+  const setupEditor = () => {
+    const jsonDoc = document.querySelector("#json");
+    const responseBody = document.querySelector("#body-response-tab");
+
+    const basicExtensions = [
+      basicSetup,
+      keymap.of([defaultTabBinding]),
+      json(),
+      EditorState.tabSize.of(2),
+    ];
+
+    const requestEditor = new EditorView({
+      state: EditorState.create({
+        doc: "{\n\t\n}",
+        extensions: basicExtensions,
+      }),
+      parent: jsonDoc,
+    });
+
+    const responseEditor = new EditorView({
+      state: EditorState.create({
+        doc: "{}",
+        extensions: [...basicExtensions, EditorView.editable.of(false)],
+      }),
+      parent: responseBody,
+    });
+
+    return { requestEditor };
+  };
 
   const handleTab = (e, val) => {
     e.preventDefault();
@@ -69,7 +104,8 @@ export default function Home() {
       headers: arrToObject(inputHeadersFields),
     });
 
-    console.log(res);
+    console.log(bodyRef.current);
+
     setResponse(res);
   };
 
@@ -83,25 +119,31 @@ export default function Home() {
     return res;
   };
 
-  const updateEndTime = (response) => {
-    console.log(response);
-    // response.customData = response.customData || {};
-    // response.customData.time =
-    //   new DateTime.now() - response.config.customData.startTime;
-    return response;
-  };
-
   useEffect(() => {
-    // axios.interceptors.request.use((request) => {
-    //   request.customData = request.customData || {};
-    //   request.customData.startTime = new DateTime.now();
-    //   return request;
-    // });
-    // axios.interceptors.response.use(updateEndTime, (e) => {
-    //   // Promise.reject(updateEndTime(e.response));
-    //   console.log(e);
-    //   return e;
-    // });
+    axios.interceptors.request.use(
+      function (config) {
+        config.metadata = { startTime: new Date() };
+        return config;
+      },
+      function (error) {
+        return Promise.reject(error);
+      }
+    );
+
+    axios.interceptors.response.use(
+      function (response) {
+        response.config.metadata.endTime = new Date();
+        response.duration =
+          response.config.metadata.endTime - response.config.metadata.startTime;
+        return response;
+      },
+      function (error) {
+        error.config.metadata.endTime = new Date();
+        error.duration =
+          error.config.metadata.endTime - error.config.metadata.startTime;
+        return Promise.reject(error);
+      }
+    );
   }, []);
 
   return (
@@ -277,6 +319,7 @@ export default function Home() {
               <div
                 className="overflow-auto"
                 style={{ maxHeight: "200px" }}
+                id="json"
               ></div>
             </div>
           </div>
@@ -289,10 +332,17 @@ export default function Home() {
               Status: <span>{response && response.status}</span>
             </div>
             <div className="me-3">
-              Time: <span></span>ms
+              Time: <span>{response && response.duration}</span>ms
             </div>
             <div className="me-3">
-              Size: <span></span>
+              Size:{" "}
+              <span>
+                {Object.keys(response).length > 0 &&
+                  prettyBytes(
+                    JSON.stringify(response.data).length +
+                      JSON.stringify(response.headers).length
+                  )}
+              </span>
             </div>
           </div>
         </div>
