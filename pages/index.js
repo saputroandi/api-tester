@@ -2,10 +2,7 @@ import axios from "axios";
 import Head from "next/head";
 import { useState, useEffect, useRef } from "react";
 import prettyBytes from "pretty-bytes";
-import { EditorState, basicSetup } from "@codemirror/basic-setup";
-import { EditorView, keymap } from "@codemirror/view";
-import { defaultTabBinding } from "@codemirror/commands";
-import { json } from "@codemirror/lang-json";
+import { Controlled as Codemirror } from "react-codemirror2-react-17";
 
 export default function Home() {
   const [selected, setSelected] = useState("query");
@@ -22,35 +19,46 @@ export default function Home() {
     { key: "", value: "" },
   ]);
 
-  const setupEditor = () => {
-    const jsonDoc = document.querySelector("#json");
-    const responseBody = document.querySelector("#body-response-tab");
+  // const setupEditor = () => {
+  //   const jsonDoc = document.querySelector("#json-editor");
+  //   const responseBody = document.querySelector("#body-response-tab");
 
-    const basicExtensions = [
-      basicSetup,
-      keymap.of([defaultTabBinding]),
-      json(),
-      EditorState.tabSize.of(2),
-    ];
+  //   const basicExtensions = [
+  //     basicSetup,
+  //     keymap.of([defaultTabBinding]),
+  //     json(),
+  //     EditorState.tabSize.of(2),
+  //   ];
 
-    const requestEditor = new EditorView({
-      state: EditorState.create({
-        doc: "{\n\t\n}",
-        extensions: basicExtensions,
-      }),
-      parent: jsonDoc,
-    });
+  //   const requestEditor = new EditorView({
+  //     state: EditorState.create({
+  //       doc: "{\n\t\n}",
+  //       extensions: basicExtensions,
+  //     }),
+  //     parent: jsonDoc,
+  //   });
 
-    const responseEditor = new EditorView({
-      state: EditorState.create({
-        doc: "{}",
-        extensions: [...basicExtensions, EditorView.editable.of(false)],
-      }),
-      parent: responseBody,
-    });
+  //   const responseEditor = new EditorView({
+  //     state: EditorState.create({
+  //       doc: "{}",
+  //       extensions: [...basicExtensions, EditorView.editable.of(false)],
+  //     }),
+  //     parent: responseBody,
+  //   });
 
-    return { requestEditor };
-  };
+  //   const updateResponseEditor = (value) => {
+  //     // responseEditor.update({ values: JSON.stringify(value, null, 2) });
+  //     responseEditor.dispatch({
+  //       changes: {
+  //         from: 0,
+  //         to: responseEditor.state.doc.length,
+  //         insert: JSON.stringify(value, null, 2),
+  //       },
+  //     });
+  //   };
+
+  //   return { requestEditor, updateResponseEditor };
+  // };
 
   const handleTab = (e, val) => {
     e.preventDefault();
@@ -97,14 +105,25 @@ export default function Home() {
   };
 
   const handleSendData = async () => {
+    // const { requestEditor, updateResponseEditor } = setupEditor();
+
+    // let data;
+    // try {
+    //   data = JSON.parse(requestEditor.state.doc.toString() || null);
+    // } catch (e) {
+    //   alert("JSON data is malformed");
+    //   return;
+    // }
+
     const res = await axios({
       url: url,
       method: method,
       params: arrToObject(inputParamFields),
       headers: arrToObject(inputHeadersFields),
+      // data,
     });
 
-    console.log(bodyRef.current);
+    // updateResponseEditor(res.data);
 
     setResponse(res);
   };
@@ -120,6 +139,8 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // setupEditor();
+
     axios.interceptors.request.use(
       function (config) {
         config.metadata = { startTime: new Date() };
@@ -319,8 +340,10 @@ export default function Home() {
               <div
                 className="overflow-auto"
                 style={{ maxHeight: "200px" }}
-                id="json"
-              ></div>
+                id="json-editor"
+              >
+                <Codemirror options={{ mode: "json" }} />
+              </div>
             </div>
           </div>
         </form>
@@ -355,7 +378,6 @@ export default function Home() {
                   ? "nav-link active"
                   : "nav-link"
               }
-              id="body-response-tab"
               onClick={(e) => handleTabResponse(e, "body-response")}
             >
               Body
@@ -384,9 +406,10 @@ export default function Home() {
                 : "tab-pane fade"
             }
             id="body-response-tab"
+            ref={bodyRef}
             role={"tabpanel"}
           >
-            body
+            <Codemirror options={{ mode: "json" }} />
           </div>
 
           <div
