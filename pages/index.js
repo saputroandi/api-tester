@@ -3,8 +3,32 @@ import Head from "next/head";
 import { useState, useEffect, useRef } from "react";
 import prettyBytes from "pretty-bytes";
 import { Controlled as Codemirror } from "react-codemirror2-react-17";
+import "codemirror/lib/codemirror.css";
+import "codemirror/theme/material.css";
 
 export default function Home() {
+  let modeLoaded = false;
+  if (
+    typeof window !== "undefined" &&
+    typeof window.navigator !== "undefined"
+  ) {
+    require("codemirror/mode/javascript/javascript");
+    modeLoaded = true;
+  }
+
+  let options = {
+    theme: "default",
+    tabSize: 2,
+  };
+
+  if (modeLoaded) {
+    options.mode = {
+      name: "javascript",
+      json: true,
+      statementIndent: 2,
+    };
+  }
+
   const [selected, setSelected] = useState("query");
   const [selectedResponse, setSelectedResponse] = useState("body-response");
   const [response, setResponse] = useState({});
@@ -18,47 +42,7 @@ export default function Home() {
   const [inputHeadersFields, setInputHeadersFields] = useState([
     { key: "", value: "" },
   ]);
-
-  // const setupEditor = () => {
-  //   const jsonDoc = document.querySelector("#json-editor");
-  //   const responseBody = document.querySelector("#body-response-tab");
-
-  //   const basicExtensions = [
-  //     basicSetup,
-  //     keymap.of([defaultTabBinding]),
-  //     json(),
-  //     EditorState.tabSize.of(2),
-  //   ];
-
-  //   const requestEditor = new EditorView({
-  //     state: EditorState.create({
-  //       doc: "{\n\t\n}",
-  //       extensions: basicExtensions,
-  //     }),
-  //     parent: jsonDoc,
-  //   });
-
-  //   const responseEditor = new EditorView({
-  //     state: EditorState.create({
-  //       doc: "{}",
-  //       extensions: [...basicExtensions, EditorView.editable.of(false)],
-  //     }),
-  //     parent: responseBody,
-  //   });
-
-  //   const updateResponseEditor = (value) => {
-  //     // responseEditor.update({ values: JSON.stringify(value, null, 2) });
-  //     responseEditor.dispatch({
-  //       changes: {
-  //         from: 0,
-  //         to: responseEditor.state.doc.length,
-  //         insert: JSON.stringify(value, null, 2),
-  //       },
-  //     });
-  //   };
-
-  //   return { requestEditor, updateResponseEditor };
-  // };
+  const [jsonVal, setJsonVal] = useState(JSON.parse("{\n\t\n}", null, 2));
 
   const handleTab = (e, val) => {
     e.preventDefault();
@@ -105,8 +89,6 @@ export default function Home() {
   };
 
   const handleSendData = async () => {
-    // const { requestEditor, updateResponseEditor } = setupEditor();
-
     // let data;
     // try {
     //   data = JSON.parse(requestEditor.state.doc.toString() || null);
@@ -139,8 +121,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // setupEditor();
-
     axios.interceptors.request.use(
       function (config) {
         config.metadata = { startTime: new Date() };
@@ -166,6 +146,10 @@ export default function Home() {
       }
     );
   }, []);
+
+  useEffect(() => {
+    console.log(jsonVal);
+  }, [jsonVal]);
 
   return (
     <div>
@@ -342,7 +326,11 @@ export default function Home() {
                 style={{ maxHeight: "200px" }}
                 id="json-editor"
               >
-                <Codemirror options={{ mode: "json" }} />
+                <Codemirror
+                  options={options}
+                  value={JSON.stringify(jsonVal)}
+                  onBeforeChange={(editor, data, val) => setJsonVal(val)}
+                />
               </div>
             </div>
           </div>
@@ -409,7 +397,11 @@ export default function Home() {
             ref={bodyRef}
             role={"tabpanel"}
           >
-            <Codemirror options={{ mode: "json" }} />
+            <Codemirror
+              options={options}
+              autoCursor={false}
+              value={JSON.stringify(response.data, null, 2)}
+            />
           </div>
 
           <div
