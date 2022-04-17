@@ -1,13 +1,23 @@
-import axios from "axios";
-import Head from "next/head";
 import { useState, useEffect, useRef } from "react";
+import Head from "next/head";
+import axios from "axios";
 import prettyBytes from "pretty-bytes";
 import { Controlled as Codemirror } from "react-codemirror2-react-17";
 import "codemirror/lib/codemirror.css";
-import "codemirror/theme/material.css";
 
 export default function Home() {
+  const [selected, setSelected] = useState("query");
+  const [selectedResponse, setSelectedResponse] = useState("body-response");
+  const [response, setResponse] = useState({});
+  const [method, setMethod] = useState("");
+  const [url, setUrl] = useState("");
+  const bodyRef = useRef(null);
+  const initialFields = [{ key: "", value: "" }];
+  const [inputParamFields, setInputParamFields] = useState(initialFields);
+  const [inputHeadersFields, setInputHeadersFields] = useState(initialFields);
+  const [jsonVal, setJsonVal] = useState("");
   let modeLoaded = false;
+
   if (
     typeof window !== "undefined" &&
     typeof window.navigator !== "undefined"
@@ -19,6 +29,8 @@ export default function Home() {
   let options = {
     theme: "default",
     tabSize: 2,
+    lineWrapping: true,
+    lint: true,
   };
 
   if (modeLoaded) {
@@ -28,21 +40,6 @@ export default function Home() {
       statementIndent: 2,
     };
   }
-
-  const [selected, setSelected] = useState("query");
-  const [selectedResponse, setSelectedResponse] = useState("body-response");
-  const [response, setResponse] = useState({});
-  const [method, setMethod] = useState("");
-  const [url, setUrl] = useState("");
-  const bodyRef = useRef(null);
-  const [inputParamFields, setInputParamFields] = useState([
-    { key: "", value: "" },
-  ]);
-
-  const [inputHeadersFields, setInputHeadersFields] = useState([
-    { key: "", value: "" },
-  ]);
-  const [jsonVal, setJsonVal] = useState(JSON.parse("{\n\t\n}", null, 2));
 
   const handleTab = (e, val) => {
     e.preventDefault();
@@ -89,23 +86,21 @@ export default function Home() {
   };
 
   const handleSendData = async () => {
-    // let data;
-    // try {
-    //   data = JSON.parse(requestEditor.state.doc.toString() || null);
-    // } catch (e) {
-    //   alert("JSON data is malformed");
-    //   return;
-    // }
+    let data;
+    try {
+      data = JSON.parse(jsonVal || null);
+    } catch (e) {
+      alert("JSON data is malformed");
+      return;
+    }
 
     const res = await axios({
       url: url,
       method: method,
       params: arrToObject(inputParamFields),
       headers: arrToObject(inputHeadersFields),
-      // data,
+      data,
     });
-
-    // updateResponseEditor(res.data);
 
     setResponse(res);
   };
@@ -147,15 +142,16 @@ export default function Home() {
     );
   }, []);
 
-  useEffect(() => {
-    console.log(jsonVal);
-  }, [jsonVal]);
-
   return (
     <div>
       <Head>
-        <title>Andi Saputro || Postman Clone</title>
-        <meta name="description" content="Postman Clone by Andi Saputro" />
+        <meta name="description" content="API Tester by Andi" />
+        <meta property="og:description" content="API Tester by Andi" />
+        <meta name="twitter:description" content="API Tester by Andi" />
+
+        <link rel="icon" href="/api.png" />
+
+        <title>Andi S || API Tester</title>
       </Head>
 
       <main className="p-4">
@@ -328,7 +324,7 @@ export default function Home() {
               >
                 <Codemirror
                   options={options}
-                  value={JSON.stringify(jsonVal)}
+                  value={jsonVal}
                   onBeforeChange={(editor, data, val) => setJsonVal(val)}
                 />
               </div>
