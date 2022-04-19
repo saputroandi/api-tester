@@ -86,6 +86,8 @@ export default function Home() {
   };
 
   const handleSendData = async () => {
+    if (url.length <= 0) return alert("URL is empty");
+
     let data;
     try {
       data = JSON.parse(jsonVal || null);
