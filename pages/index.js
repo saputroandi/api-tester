@@ -150,10 +150,6 @@ export default function Home() {
         <meta name="description" content="API Tester by Andi" />
         <meta property="og:description" content="API Tester by Andi" />
         <meta name="twitter:description" content="API Tester by Andi" />
-        <meta
-          httpEquiv="Content-Security-Policy"
-          content="upgrade-insecure-requests"
-        />
 
         <link rel="icon" href="/api.png" />
 
